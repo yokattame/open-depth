@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 
-CUDA_VISIBLE_DEVICES=2 \
+CUDA_VISIBLE_DEVICES=3 \
   python baseline.py \
   --dataset='KittiStereo' \
-  --dataset_root='../kitti/training' \
+  --dataset_root='../data/KittiStereo' \
   --validation 1 \
   --batch_size=20 \
   --lr=0.001 \
