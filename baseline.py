@@ -4,11 +4,11 @@ import argparse
 import numpy as np
 import sys
 import torch
+import torchvision.transforms as transforms
 
 from torch import nn
 from torch.backends import cudnn
 from torch.utils.data import DataLoader
-from torchvision.transforms import *
 
 from depth import datasets
 from depth import networks
@@ -39,9 +39,9 @@ def main(args):
     val_list = train_list[:num_val]
     train_list = train_list[num_val:]
     assert(num == val_list.shape[0] + train_list.shape[0])
-    print('validation size: {}'.format(len(val_list)))
+    print('validation size: {}'.format(val_list.shape[0]))
 
-  print('train size: {}'.format(len(train_list)))
+  print('train size: {}'.format(train_list.shape[0]))
   
   normalizer = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                     std=[0.229, 0.224, 0.225])
@@ -50,7 +50,7 @@ def main(args):
       transforms.ToTensor(),
       normalizer,
   ])
-  train_dataset = D.DepthDataset(train_list, (args.input_height, args.input_width), train_transformer, random_crop=True)
+  train_dataset = D.DepthDataset(train_list, (args.input_height, args.input_width), train_transformer, crop_method='Random')
   train_loader = DataLoader(
       train_dataset,
       batch_size=args.batch_size,
@@ -64,7 +64,7 @@ def main(args):
         transforms.ToTensor(),
         normalizer,
     ])
-    val_dataset = D.DepthDataset(val_list, (args.input_height, args.input_width), val_transformer)
+    val_dataset = D.DepthDataset(val_list, (args.input_height, args.input_width), val_transformer, crop_method='Center')
     val_loader = DataLoader(
         val_dataset,
         batch_size=args.batch_size,
