@@ -6,7 +6,7 @@ class SGDC(torch.optim.SGD):
   ATTENTION: lr is a required parameter.
   '''
 
-  def __init__(self, params, lr, momentum=0, dampening=0, weight_decay=0, neterov=Fase, gradient_threshold=None):
+  def __init__(self, params, lr, momentum=0, dampening=0, weight_decay=0, neterov=False, gradient_threshold=None):
     super().__init__(params, lr, momentum, dampening, weight_decay, nesterov)
     self.gradient_threshold = gradient_threshold
 

@@ -15,7 +15,6 @@ from depth import networks
 from depth import loss
 from depth import optimizers
 from depth.utils.data import dataset as D
-#from depth.utils.data import transforms as T
 from depth.trainers import Trainer
 from depth.evaluators import Evaluator
 from depth.utils.logging import Logger
@@ -23,7 +22,7 @@ from depth.utils.serialization import save_checkpoint, load_checkpoint
 
 
 def main(args):
-  cudnn.benchmark = True
+  #cudnn.benchmark = True
   torch.manual_seed(args.seed)
   sys.stdout=Logger(osp.join(args.logs_dir, 'log.txt'))
   
@@ -50,14 +49,10 @@ def main(args):
 
   print('train size: {}'.format(train_list.shape[0]))
   
-  #normalizer = transforms.Normalize(mean=[0.485, 0.456, 0.406],
-  #                                  std=[0.229, 0.224, 0.225])
-
   train_transformer = transforms.Compose([
       transforms.ToTensor(),
-      #normalizer,
   ])
-  train_dataset = D.DepthDataset(train_list, (args.input_height, args.input_width), train_transformer, resize_method='Random')
+  train_dataset = D.DepthDataset(train_list, (args.input_height, args.input_width), train_transformer, resize_method='Random Crop')
   train_loader = DataLoader(
       train_dataset,
       batch_size=args.batch_size,
@@ -69,9 +64,8 @@ def main(args):
   if args.validation > 0:
     val_transformer = transforms.Compose([
         transforms.ToTensor(),
-        #normalizer,
     ])
-    val_dataset = D.DepthDataset(val_list, (args.input_height, args.input_width), val_transformer, resize_method='Center')
+    val_dataset = D.DepthDataset(val_list, (args.input_height, args.input_width), val_transformer, resize_method='Center Crop')
     val_loader = DataLoader(
         val_dataset,
         batch_size=args.batch_size,
