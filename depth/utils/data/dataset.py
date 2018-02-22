@@ -53,11 +53,11 @@ class StaticPadTo64x(object):
 
 class DepthDataset(Dataset):
 
-  def __init__(self, datalist, input_size, transform=None, crop_method='Center'):
+  def __init__(self, datalist, input_size, transform=None, resize_method='Center'):
     self.datalist = datalist
     self.transform = transform
     self.input_size = input_size
-    self.crop_method = crop_method
+    self.resize_method = resize_method
 
   def __len__(self):
     return len(self.datalist)
@@ -76,16 +76,16 @@ class DepthDataset(Dataset):
     if self.input_size != (0, 0):
       crop_size = self.input_size
     else:
-      self.crop_method = 'Pad'
+      self.resize_method = 'Pad'
     
-    if self.crop_method == 'Random':
+    if self.resize_method == 'Random':
       cropper = StaticRandomCrop(image_size, crop_size)
-    elif self.crop_method == 'Center':
+    elif self.resize_method == 'Center':
       cropper = StaticCenterCrop(image_size, crop_size)
-    elif self.crop_method == 'Pad':
+    elif self.resize_method == 'Pad':
       cropper = StaticPadTo64x(image_size)
     else:
-      raise ValueError('Illegal parameter crop_method: ' + self.crop_method)
+      raise ValueError('Illegal parameter resize_method: ' + self.resize_method)
     
     left_image = cropper(left_image)
     right_image = cropper(right_image)

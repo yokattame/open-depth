@@ -13,6 +13,7 @@ from torchvision import transforms
 from depth import datasets
 from depth import networks
 from depth import loss
+from depth import optimizers
 from depth.utils.data import dataset as D
 #from depth.utils.data import transforms as T
 from depth.trainers import Trainer
@@ -56,7 +57,7 @@ def main(args):
       transforms.ToTensor(),
       #normalizer,
   ])
-  train_dataset = D.DepthDataset(train_list, (args.input_height, args.input_width), train_transformer, crop_method='Random')
+  train_dataset = D.DepthDataset(train_list, (args.input_height, args.input_width), train_transformer, resize_method='Random')
   train_loader = DataLoader(
       train_dataset,
       batch_size=args.batch_size,
@@ -70,7 +71,7 @@ def main(args):
         transforms.ToTensor(),
         #normalizer,
     ])
-    val_dataset = D.DepthDataset(val_list, (args.input_height, args.input_width), val_transformer, crop_method='Center')
+    val_dataset = D.DepthDataset(val_list, (args.input_height, args.input_width), val_transformer, resize_method='Center')
     val_loader = DataLoader(
         val_dataset,
         batch_size=args.batch_size,
@@ -81,21 +82,25 @@ def main(args):
   model = networks.FlowNetDC(normalization='Example')
   model = nn.DataParallel(model).cuda()
 
-
-  #criterion = loss.L1ValidLoss().cuda()
-  criterion = loss.MultiScaleValidLoss().cuda()
+  if args.loss == 'L1Valid':
+    criterion = loss.L1ValidLoss().cuda()
+  elif args.loss == 'MultiScaleValid':
+    criterion = loss.MultiScaleValidLoss().cuda()
+  else:
+    raise ValueError('Undefined loss: ' + args.loss)
 
   trainer = Trainer(model, criterion, args)
   evaluator = Evaluator(model, criterion, args)
 
   param_groups = model.parameters()
   if args.optimizer == 'Adam':
-    optimizer = torch.optim.Adam(param_groups, lr=args.lr, betas=(args.beta1, 0.999))
+    optimizer = torch.optim.Adam(param_groups, lr=args.lr, betas=(args.beta1, args.beta2))
+  elif args.optimizer == 'SGD':
+    optimizer = torch.optim.SGD(param_groups, lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay, nesterov=True)
+  elif args.optimizer == 'SGDC':
+    optimizer = optimizers.SGDC(param_groups, lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay, nesterov=True, gradient_threshold=args.gradient_threshold)
   else:
-    optimizer = torch.optim.SGD(param_groups, lr=args.lr,
-                                momentum=args.momentum,
-                                weight_decay=args.weight_decay,
-                                nesterov=True)
+    raise ValueError('Undefined optimizer: ' + args.optimizer)
   
   best_EPE = 1e9
   if args.resume:
@@ -145,12 +150,15 @@ if __name__ == '__main__':
   parser.add_argument('--epochs', type=int, default=45)
   parser.add_argument('--logs_dir', type=str, default='logs/baseline')
   parser.add_argument('--seed', type=int, default=1)
+  parser.add_argument('--loss', type=str, default='L1Valid')
   parser.add_argument('--optimizer', type=str, default='SGD')
   parser.add_argument('--lr', type=float, default=0.001)
   parser.add_argument('--step_size', type=int, default=15)
   parser.add_argument('--beta1', type=float, default=0.9)
+  parser.add_argument('--beta2', type=float, default=0.999)
   parser.add_argument('--momentum', type=float, default=0.9)
   parser.add_argument('--weight_decay', type=float, default=5e-4)
+  parser.add_argument('--gradient_threshold', type=float, default=None)
 
   main(parser.parse_args())
 
