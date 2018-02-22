@@ -13,6 +13,7 @@ from .submodules import *
 'Parameter count = 162,518,834'
 
 RGB_MAX = 255
+RGB_SCALE = 1
 
 
 class FlowNetDC(FlowNetC):
@@ -26,13 +27,13 @@ class FlowNetDC(FlowNetC):
 
         if self.normalization == 'Example':
           rgb_mean = (x1.mean(dim=3, keepdim=True).mean(dim=2, keepdim=True) + x2.mean(dim=3, keepdim=True).mean(dim=2, keepdim=True)) / 2
-          rgb_scale = RGB_MAX
+          rgb_scale = RGB_SCALE
         elif self.normalization == 'Batch':
           rgb_mean = (x1.mean(dim=3, keepdim=True).mean(dim=2, keepdim=True).mean(dim=0, keepdim=True) + x2.mean(dim=3, keepdim=True).mean(dim=2, keepdim=True).mean(dim=0, keepdim=True)) / 2
-          rgb_scale = RGB_MAX
+          rgb_scale = RGB_SCALE
         elif self.normalization == 'ImageNet':
-          rgb_mean = torch.autograd.Variable(torch.Tensor([123.680, 116.779, 103.939]).view(1, -1, 1, 1)).cuda()
-          rgb_scale = troch.autograd.Variable((torch.Tensor([0.229, 0.224, 0.225]) * RGB_MAX).view(1, -1, 1, 1)).cuda()
+          rgb_mean = torch.autograd.Variable((torch.Tensor([123.680, 116.779, 103.939]) / RGB_MAX).view(1, -1, 1, 1)).cuda()
+          rgb_scale = troch.autograd.Variable(torch.Tensor([0.229, 0.224, 0.225]).view(1, -1, 1, 1)).cuda()
         else:
           raise ValueError('Undefined normalization method: ' + self.normalization)
 
