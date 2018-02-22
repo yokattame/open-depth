@@ -34,15 +34,20 @@ class Evaluator(object):
       epes.update(epe.data[0], self.args.batch_size)
 
       batch_time.update(time.time() - end)
-      end = time.time()
 
       if (i + 1) % print_freq == 0:
         print('Extract Features: [{}/{}]\t'
               'Time {:.3f} ({:.3f})\t'
               'Data {:.3f} ({:.3f})\t'
+              'Loss {:.3f} ({:.3f})\t'
+              'EPE {:.3f} ({:.3f})\t'
               .format(i + 1, len(data_loader),
                       batch_time.val, batch_time.avg,
-                      data_time.val, data_time.avg))
+                      data_time.val, data_time.avg,
+                      losses.val, losses.avg,
+                      epes.val, epes.avg))
+      end = time.time()
+
     return epes.avg
   
   def _parse_data(self, inputs):

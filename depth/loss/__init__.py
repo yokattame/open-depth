@@ -1,8 +1,10 @@
 from __future__ import absolute_import
 
-from .L1V import L1V
+from .L1ValidLoss import L1ValidLoss
+from .MultiScaleValidLoss import MultiScaleValidLoss
 
 __all__ = [
-  'L1V',
+  'L1ValidLoss',
+  'MultiScaleValidLoss'
 ]
 

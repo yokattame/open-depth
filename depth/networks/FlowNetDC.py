@@ -12,22 +12,32 @@ from .FlowNetC import FlowNetC
 from .submodules import *
 'Parameter count = 162,518,834'
 
+RGB_MAX = 255
+
 
 class FlowNetDC(FlowNetC):
 
-    def __init__(self, batchNorm=False, div_flow=1):
+    def __init__(self, normalization='Example', batchNorm=False, div_flow=1):
         super(FlowNetDC, self).__init__(batchNorm=batchNorm, div_flow=1)
-#        self.rgb_max = args.rgb_max
+        self.normalization = normalization
 
     def forward(self, inputs):
-#        rgb_mean = inputs.contiguous().view(inputs.size()[:2]+(-1,)).mean(dim=-1).view(inputs.size()[:2] + (1,1,1,))
-        
-#        x = (inputs - rgb_mean) / self.rgb_max
-#        x1 = x[:,:,0,:,:]
-#        x2 = x[:,:,1,:,:]
-
         x1, x2 = inputs
-        #print(x1.size())
+
+        if self.normalization == 'Example':
+          rgb_mean = (x1.mean(dim=3, keepdim=True).mean(dim=2, keepdim=True) + x2.mean(dim=3, keepdim=True).mean(dim=2, keepdim=True)) / 2
+          rgb_scale = RGB_MAX
+        elif self.normalization == 'Batch':
+          rgb_mean = (x1.mean(dim=3, keepdim=True).mean(dim=2, keepdim=True).mean(dim=0, keepdim=True) + x2.mean(dim=3, keepdim=True).mean(dim=2, keepdim=True).mean(dim=0, keepdim=True)) / 2
+          rgb_scale = RGB_MAX
+        elif self.normalization == 'ImageNet':
+          rgb_mean = torch.autograd.Variable(torch.Tensor([123.680, 116.779, 103.939]).view(1, -1, 1, 1)).cuda()
+          rgb_scale = troch.autograd.Variable((torch.Tensor([0.229, 0.224, 0.225]) * RGB_MAX).view(1, -1, 1, 1)).cuda()
+        else:
+          raise ValueError('Undefined normalization method: ' + self.normalization)
+
+        x1 = (x1 - rgb_mean) / rgb_scale
+        x2 = (x2 - rgb_mean) / rgb_scale
 
         # FlownetC top input stream
         out_conv1a = self.conv1(x1)
@@ -86,6 +96,12 @@ class FlowNetDC(FlowNetC):
         concat2 = torch.cat((out_conv2a,out_deconv2,depth3_up),1)
 
         depth2 = self.predict_depth2(concat2)
-
-        return self.upsample1(depth2 * self.div_flow)
+        
+        upsampled_depth2 = self.upsample2(depth2 * self.div_flow)
+        upsampled_depth3 = self.upsample3(depth3 * self.div_flow)
+        upsampled_depth4 = self.upsample4(depth4 * self.div_flow)
+        upsampled_depth5 = self.upsample5(depth5 * self.div_flow)
+        upsampled_depth6 = self.upsample6(depth6 * self.div_flow)
+        
+        return upsampled_depth2, upsampled_depth3, upsampled_depth4, upsampled_depth5, upsampled_depth6
 

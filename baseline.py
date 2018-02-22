@@ -4,11 +4,11 @@ import argparse
 import numpy as np
 import sys
 import torch
-import torchvision.transforms as transforms
 
 from torch import nn
 from torch.backends import cudnn
 from torch.utils.data import DataLoader
+from torchvision import transforms
 
 from depth import datasets
 from depth import networks
@@ -49,12 +49,12 @@ def main(args):
 
   print('train size: {}'.format(train_list.shape[0]))
   
-  normalizer = transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                    std=[0.229, 0.224, 0.225])
+  #normalizer = transforms.Normalize(mean=[0.485, 0.456, 0.406],
+  #                                  std=[0.229, 0.224, 0.225])
 
   train_transformer = transforms.Compose([
       transforms.ToTensor(),
-      normalizer,
+      #normalizer,
   ])
   train_dataset = D.DepthDataset(train_list, (args.input_height, args.input_width), train_transformer, crop_method='Random')
   train_loader = DataLoader(
@@ -68,7 +68,7 @@ def main(args):
   if args.validation > 0:
     val_transformer = transforms.Compose([
         transforms.ToTensor(),
-        normalizer,
+        #normalizer,
     ])
     val_dataset = D.DepthDataset(val_list, (args.input_height, args.input_width), val_transformer, crop_method='Center')
     val_loader = DataLoader(
@@ -78,11 +78,12 @@ def main(args):
         shuffle=False,
         pin_memory=True)
 
-  model = networks.FlowNetnl()
+  model = networks.FlowNetDC(normalization='Example')
   model = nn.DataParallel(model).cuda()
 
 
-  criterion = loss.L1V().cuda()
+  #criterion = loss.L1ValidLoss().cuda()
+  criterion = loss.MultiScaleValidLoss().cuda()
 
   trainer = Trainer(model, criterion, args)
   evaluator = Evaluator(model, criterion, args)

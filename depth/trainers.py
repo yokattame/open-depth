@@ -48,7 +48,6 @@ class BaseTrainer(object):
       optimizer.step()
 
       batch_time.update(time.time() - end)
-      end = time.time()
 
       if (i + 1) % print_freq == 0:
         print('Epoch: [{}][{}/{}]\t'
@@ -61,6 +60,7 @@ class BaseTrainer(object):
                     data_time.val, data_time.avg,
                     losses.val, losses.avg,
                     epes.val, epes.avg))
+      end = time.time()
 
   def _parse_data(self, inputs):
     raise NotImplementedError
