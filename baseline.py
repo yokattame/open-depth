@@ -18,7 +18,7 @@ from depth.utils.data import dataset as D
 from depth.trainers import Trainer
 from depth.evaluators import Evaluator
 from depth.utils.logging import Logger
-from depth.utils.serialization import save_checkpoint
+from depth.utils.serialization import save_checkpoint, load_checkpoint
 
 
 def main(args):
@@ -33,12 +33,18 @@ def main(args):
       train_list.append(line)
   train_list = np.asarray(train_list)
   if args.validation > 0:
-    num = train_list.shape[0]
-    num_val = int(round(num * 0.2))
-    np.random.shuffle(train_list)
-    val_list = train_list[:num_val]
-    train_list = train_list[num_val:]
-    assert(num == val_list.shape[0] + train_list.shape[0])
+    train_list = []
+    with open(osp.join('data_lists', args.dataset + '_train.txt'), 'r') as input_file:
+      for line in input_file:
+        train_list.append(line)
+    train_list = np.asarray(train_list)
+
+    val_list = []
+    with open(osp.join('data_lists', args.dataset + '_val.txt'), 'r') as input_file:
+      for line in input_file:
+        val_list.append(line)
+    val_list = np.asarray(val_list)
+
     print('validation size: {}'.format(val_list.shape[0]))
 
   print('train size: {}'.format(train_list.shape[0]))
@@ -72,7 +78,7 @@ def main(args):
         shuffle=False,
         pin_memory=True)
 
-  model = networks.FlowNetDC()
+  model = networks.FlowNetnl()
   model = nn.DataParallel(model).cuda()
 
 
@@ -91,6 +97,20 @@ def main(args):
                                 nesterov=True)
   
   best_EPE = 1e9
+  if args.resume:
+    checkpoint = load_checkpoint(args.resume)
+    args.start_epoch = checkpoint['epoch']
+    best_EPE = checkpoint['best_EPE']
+    model.load_state_dict(checkpoint['state_dict'])
+    optimizer.load_state_dict(checkpoint['optimizer'])
+    print('=> Start epoch: {:3d}\tbest_EPE: {:5.3}'
+          .format(args.start_epoch, best_EPE))
+
+  if args.evaluate:
+    EPE = evaluator.evaluate(val_loader)
+    print('EPE: {:5.3}'.format(EPE))
+    return
+
   for epoch in range(args.start_epoch, args.epochs):
     trainer.train(epoch, train_loader, optimizer, print_freq=1)
     if (epoch + 1) % args.validation == 0:
@@ -113,6 +133,8 @@ if __name__ == '__main__':
 
   parser.add_argument('--dataset', type=str, default='KittiStereo')
   parser.add_argument('--dataset_root', type=str, default='../data/KittiStereo')
+  parser.add_argument('--resume', type=str, default='')
+  parser.add_argument('--evaluate', action='store_true')
   parser.add_argument('--validation', type=int, default=1)
   parser.add_argument('--input_height', type=int, default=320)
   parser.add_argument('--input_width', type=int, default=1216)
