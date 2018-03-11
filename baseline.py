@@ -65,7 +65,7 @@ def main(args):
     val_transformer = transforms.Compose([
         transforms.ToTensor(),
     ])
-    val_dataset = D.DepthDataset(val_list, (args.input_height, args.input_width), val_transformer, resize_method='Center Crop')
+    val_dataset = D.DepthDataset(val_list, (args.input_height, args.input_width), val_transformer, resize_method='Pad')
     val_loader = DataLoader(
         val_dataset,
         batch_size=args.batch_size,
@@ -138,16 +138,16 @@ if __name__ == '__main__':
   parser.add_argument('--validation', type=int, default=1)
   parser.add_argument('--input_height', type=int, default=320)
   parser.add_argument('--input_width', type=int, default=1216)
-  parser.add_argument('--batch_size', type=int, default=20)
+  parser.add_argument('--batch_size', type=int, default=12)
   parser.add_argument('--number_workers', type=int, default=4)
   parser.add_argument('--start_epoch', type=int, default=0)
-  parser.add_argument('--epochs', type=int, default=45)
+  parser.add_argument('--epochs', type=int, default=120)
   parser.add_argument('--logs_dir', type=str, default='logs/baseline')
   parser.add_argument('--seed', type=int, default=1)
   parser.add_argument('--loss', type=str, default='L1Valid')
   parser.add_argument('--optimizer', type=str, default='SGD')
   parser.add_argument('--lr', type=float, default=0.001)
-  parser.add_argument('--step_size', type=int, default=15)
+  parser.add_argument('--step_size', type=int, default=20)
   parser.add_argument('--beta1', type=float, default=0.9)
   parser.add_argument('--beta2', type=float, default=0.999)
   parser.add_argument('--momentum', type=float, default=0.9)
