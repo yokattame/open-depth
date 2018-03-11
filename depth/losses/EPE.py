@@ -8,7 +8,7 @@ from torch import nn
 class EPE(nn.Module):
   
   def __init__(self):
-    super(EPE, self).__init__()
+    super().__init__()
 
   def forward(self, outputs, targets):
     ground_truths, masks = targets

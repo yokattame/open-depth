@@ -3,14 +3,15 @@ from __future__ import absolute_import
 import torch
 from torch import nn
 
+from .MetricFactory import MetricFactory
 from .EPE import EPE
 from .Outliers import Outliers
 
 
 class BaseLoss(nn.Module):
 
-  def __init__(self, metrics={'EPE': EPE(), 'D1-all': Outliers(absolute_threshold=3, relative_threshold=0.05)}):
-    super(BaseLoss, self).__init__()
+  def __init__(self, metrics=MetricFactory.create_metric_bundle(['EPE', 'D1'])):
+    super().__init__()
     self.metrics = metrics
   
   def get_metric_keys(self):

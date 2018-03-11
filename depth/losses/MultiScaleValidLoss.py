@@ -9,14 +9,16 @@ from .Outliers import Outliers
 
 class MultiScaleValidLoss(BaseLoss):
 
-  def __init__(self, max_num_scales=5, initial_weight=0.32, loss_decay=0.5, metrics={'EPE': EPE(), 'D1-all': Outliers(absolute_threshold=3, relative_threshold=0.05)}):
+  def __init__(self, max_num_scales=5, initial_weight=0.32, loss_decay=0.5, metrics=None):
     
-    super(MultiScaleValidLoss, self).__init__(metrics)
+    if metrics is not None:
+      super().__init__(metrics=metrics)
+    else:
+      super().__init__()
 
     self.max_num_scales = max_num_scales
     self.initial_weight = initial_weight
     self.loss_decay = loss_decay
-    self.metrics = metrics
     self.epe = EPE()
 
   def forward(self, outputs, targets):

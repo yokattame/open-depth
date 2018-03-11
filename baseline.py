@@ -1,4 +1,4 @@
-from __future__ import print_function, absolute_import
+from __future__ import absolute_import
 import os.path as osp
 import argparse
 import numpy as np
@@ -12,7 +12,9 @@ from torchvision import transforms
 
 from depth import datasets
 from depth import networks
-from depth import loss
+from depth import losses
+from depth.losses.MetricFactory import MetricFactory
+from depth.losses.loss_factory import LossFactory
 from depth import optimizers
 from depth.utils.data import dataset as D
 from depth.trainers import Trainer
@@ -76,12 +78,8 @@ def main(args):
   model = networks.FlowNetDC(normalization='Example')
   model = nn.DataParallel(model).cuda()
 
-  if args.loss == 'L1Valid':
-    criterion = loss.L1ValidLoss().cuda()
-  elif args.loss == 'MultiScaleValid':
-    criterion = loss.MultiScaleValidLoss(initial_weight=args.multi_scale_initial_weight, loss_decay=args.multi_scale_loss_decay).cuda()
-  else:
-    raise ValueError('Undefined loss: ' + args.loss)
+  metrics = MetricFactory.create_metric_bundle(args.metrics)
+  criterion = losses.create(args.loss, metrics).cuda()
 
   trainer = Trainer(model, criterion, args)
   evaluator = Evaluator(model, criterion, args)
@@ -96,15 +94,13 @@ def main(args):
   else:
     raise ValueError('Undefined optimizer: ' + args.optimizer)
   
-  best_EPE = 1e9
   if args.resume:
     checkpoint = load_checkpoint(args.resume)
     args.start_epoch = checkpoint['epoch']
-    best_EPE = checkpoint['best_EPE']
     model.load_state_dict(checkpoint['state_dict'])
     optimizer.load_state_dict(checkpoint['optimizer'])
-    print('=> Start epoch: {:3d}\tbest_EPE: {:5.3}'
-          .format(args.start_epoch, best_EPE))
+    print('=> Start epoch: {:3d}'
+          .format(args.start_epoch))
 
   if args.evaluate:
     metrics = evaluator.evaluate(val_loader)
@@ -112,21 +108,35 @@ def main(args):
       print(metric_key + ': {:5.3}'.format(metric_value.avg))
     return
 
+  best_metrics = {}
+  for metric_key in args.metrics:
+    best_metrics[metric_key] = float('inf')
+
   for epoch in range(args.start_epoch, args.epochs):
     trainer.train(epoch, train_loader, optimizer, print_freq=1)
     if (epoch + 1) % args.validation == 0:
-      EPE = evaluator.evaluate(val_loader)['EPE'].avg
-      is_best = EPE < best_EPE
-      best_EPE = min(EPE, best_EPE)
-      save_checkpoint({
+      metric_values = evaluator.evaluate(val_loader)
+      are_best = {}
+      print('\n * Finished epoch {:3d}:\t'.format(epoch), end='')
+      
+      for metric_key, metric_value in metric_values.items():
+        if metric_value.avg < best_metrics[metric_key]:
+          best_metrics[metric_key] = metric_value
+          are_best[metric_key] = True
+        else:
+          are_best[metric_key] = False
+
+        print('{}: {:5.3}\tbest: {:5.3}{}\t'.format(metric_key, metric_value, best_metrics[metric_key], ' *' if are_best[metric_key] else ''), end='')
+      print()
+      checkpoint = {
+        **{
           'epoch': epoch + 1,
           'state_dict': model.state_dict(),
-          'best_EPE' : best_EPE,
-          'optimizer': optimizer.state_dict(),
-      }, is_best, fpath=osp.join(args.logs_dir, 'checkpoint.pth.tar'))
-      
-      print('\n * Finished epoch {:3d}\tEPE: {:5.3}\tbest: {:5.3}{}\n'.
-            format(epoch, EPE, best_EPE, ' *' if is_best else ''))
+          'optimizer': optimizer.state_dict()
+        },
+        **best_metrics
+      }
+      save_checkpoint(checkpoint, are_best, fpath=osp.join(args.logs_dir, 'checkpoint.pth.tar'))
 
 
 if __name__ == '__main__':
@@ -144,6 +154,7 @@ if __name__ == '__main__':
   parser.add_argument('--start_epoch', type=int, default=0)
   parser.add_argument('--epochs', type=int, default=120)
   parser.add_argument('--logs_dir', type=str, default='logs/baseline')
+  parser.add_argument('--metrics', nargs='*', type=str, default=['EPE', 'D1'])
   parser.add_argument('--seed', type=int, default=1)
   parser.add_argument('--loss', type=str, default='L1Valid')
   parser.add_argument('--multi_scale_initial_weight', type=float, default=0.32)

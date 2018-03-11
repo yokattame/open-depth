@@ -8,7 +8,7 @@ from torch import nn
 class Outliers(nn.Module):
 
   def __init__(self, absolute_threshold, relative_threshold):
-    super(Outliers, self).__init__()
+    super().__init__()
     self.absolute_threshold = absolute_threshold
     self.relative_threshold = relative_threshold
 

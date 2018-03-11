@@ -8,9 +8,11 @@ from .Outliers import Outliers
 
 class L1ValidLoss(BaseLoss):
   
-  def __init__(self, metrics={'EPE': EPE(), 'D1-all': Outliers(absolute_threshold=3, relative_threshold=0.05)}):
-    super(L1ValidLoss, self).__init__(metrics)
-    self.metrics = metrics
+  def __init__(self, metrics=None):
+    if metrics is not None:
+      super().__init__(metrics=metrics)
+    else:
+      super().__init__()
 
   def forward(self, outputs, targets):
     outputs = outputs[0]
