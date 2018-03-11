@@ -27,7 +27,9 @@ class BaseTrainer(object):
     batch_time = AverageMeter()
     data_time = AverageMeter()
     losses = AverageMeter()
-    epes = AverageMeter()
+    metircs = dict()
+    for metric_key in self.criterion.get_metric_keys():
+      metrics[metric_key] = AverageMeter()
 
     if self.args.optimizer == 'SGD':
       self._adjust_lr(epoch, optimizer)
@@ -38,10 +40,11 @@ class BaseTrainer(object):
       data_time.update(time.time() - end)
 
       inputs, targets = self._parse_data(inputs)
-      loss, epe = self._forward(inputs, targets)
+      loss, metric_values = self._forward(inputs, targets)
 
       losses.update(loss.data[0], self.args.batch_size)
-      epes.update(epe.data[0], self.args.batch_size)
+      for metric in metrics:
+        metrics[metric].update(metric_values[metric].data[0], self.args.batch_size)
 
       optimizer.zero_grad()
       loss.backward()
@@ -54,12 +57,14 @@ class BaseTrainer(object):
             'Time {:.3f} ({:.3f})\t'
             'Data {:.3f} ({:.3f})\t'
             'Loss {:.3f} ({:.3f})\t'
-            'EPE {:.3f} ({:.3f})\t'
             .format(epoch, i + 1, len(data_loader),
                     batch_time.val, batch_time.avg,
                     data_time.val, data_time.avg,
-                    losses.val, losses.avg,
-                    epes.val, epes.avg))
+                    losses.val, losses.avg),
+            end='')
+      for metric_key, metric_value in metrics.items():
+        print(metric_label, '{:.3f} ({:.3f})\t'.format(metric_value.val, metric_value.avg), end='')
+      print()
       end = time.time()
 
   def _parse_data(self, inputs):

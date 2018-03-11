@@ -79,7 +79,7 @@ def main(args):
   if args.loss == 'L1Valid':
     criterion = loss.L1ValidLoss().cuda()
   elif args.loss == 'MultiScaleValid':
-    criterion = loss.MultiScaleValidLoss().cuda()
+    criterion = loss.MultiScaleValidLoss(initial_weight=args.multi_scale_initial_weight, loss_decay=args.multi_scale_loss_decay).cuda()
   else:
     raise ValueError('Undefined loss: ' + args.loss)
 
@@ -107,14 +107,15 @@ def main(args):
           .format(args.start_epoch, best_EPE))
 
   if args.evaluate:
-    EPE = evaluator.evaluate(val_loader)
-    print('EPE: {:5.3}'.format(EPE))
+    metrics = evaluator.evaluate(val_loader)
+    for metric_key, metric_value in metrics.items():
+      print(metric_key + ': {:5.3}'.format(metric_value.avg))
     return
 
   for epoch in range(args.start_epoch, args.epochs):
     trainer.train(epoch, train_loader, optimizer, print_freq=1)
     if (epoch + 1) % args.validation == 0:
-      EPE = evaluator.evaluate(val_loader)
+      EPE = evaluator.evaluate(val_loader)['EPE'].avg
       is_best = EPE < best_EPE
       best_EPE = min(EPE, best_EPE)
       save_checkpoint({
@@ -145,6 +146,8 @@ if __name__ == '__main__':
   parser.add_argument('--logs_dir', type=str, default='logs/baseline')
   parser.add_argument('--seed', type=int, default=1)
   parser.add_argument('--loss', type=str, default='L1Valid')
+  parser.add_argument('--multi_scale_initial_weight', type=float, default=0.32)
+  parser.add_argument('--multi_scale_loss_decay', type=float, default=0.5)
   parser.add_argument('--optimizer', type=str, default='SGD')
   parser.add_argument('--lr', type=float, default=0.001)
   parser.add_argument('--step_size', type=int, default=20)

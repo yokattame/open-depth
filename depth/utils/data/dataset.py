@@ -54,11 +54,10 @@ class DepthDataset(Dataset):
       right_image = self.torch_transform(right_image)
     mask = np.copy(disp_image)
 
-    valid = np.count_nonzero(mask)
     axis = np.transpose(np.nonzero(mask))
 
     for x, y, z in axis:
-      mask[x][y][z] = 1.0 / valid
+      mask[x][y][z] = 1.0
           
     disp_image = torch.from_numpy(disp_image.transpose(2, 0, 1))
     mask = torch.from_numpy(mask.transpose(2, 0, 1))

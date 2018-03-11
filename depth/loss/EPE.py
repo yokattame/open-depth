@@ -11,7 +11,7 @@ class EPE(nn.Module):
     super(EPE, self).__init__()
 
   def forward(self, outputs, targets):
-    ground_truth, mask = targets
-    epe = (torch.abs(ground_truth - outputs) * mask).sum(3).sum(2).mean()
+    ground_truths, masks = targets
+    epe = ((torch.abs(ground_truths - outputs) * masks).sum(3).sum(2).sum(1) / masks.sum(3).sum(2).sum(1)).mean()
     return epe
 
